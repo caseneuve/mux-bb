@@ -53,7 +53,7 @@
 
    {:scenario :send-and-capture
     :desc "Send a command and capture its output"
-    :when {:run [["bb" "-cp" "src"
+    :when {:run ["bb" "-cp" "src"
                   "-e" "(require '[mux.tmux :as t])
                         (let [be (t/make-backend {:sock \"{sock}\" :session \"{session}\"})]
                           ((:new-window! be) \"echo-win\")
@@ -62,6 +62,6 @@
                           (let [out ((:capture! be) \"echo-win\")]
                             (assert (clojure.string/includes? out \"HELLO_MUX_BB\")
                                     (str \"Expected HELLO_MUX_BB in output, got: \" out))
-                            (println \"captured OK\")))"]]}
+                            (println \"captured OK\")))"]}
     :then [[:exit-code 0]
            [:stdout-contains "captured OK"]]}]}]

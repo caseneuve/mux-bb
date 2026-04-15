@@ -6,7 +6,7 @@
        :new-window!  (fn [window-name] → id)        Create/find a window
        :send!        (fn [window-name text] → any)   Send text + Enter
        :capture!     (fn [window-name] → string)     Read terminal scrollback
-       :list!        (fn [] → [name ...])            List known windows
+       :list!        (fn [] → [name ...])            List known windows (always returns [], never nil)
      Extended (optional, cmux-only for now):
        :wait-for!        (fn [signal timeout] → any) Block until signal
        :signal-cmd       (fn [signal] → string)      Shell cmd to fire signal
@@ -38,4 +38,6 @@
     :tmux (do (require 'mux.tmux)
               ((resolve 'mux.tmux/make-backend) ctx-opts))
     :cmux (do (require 'mux.cmux)
-              ((resolve 'mux.cmux/make-backend) ctx-opts))))
+              ((resolve 'mux.cmux/make-backend) ctx-opts))
+    (throw (ex-info (str "Unknown mux backend: " backend-type)
+                    {:type :unknown-backend :backend backend-type}))))

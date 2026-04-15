@@ -79,5 +79,6 @@
 
    :list!
    (fn []
-     (some-> (tmux? sock "list-windows" "-t" session "-F" "#W")
-             str/split-lines))})
+     (or (some-> (tmux? sock "list-windows" "-t" session "-F" "#W")
+                 str/split-lines)
+         []))})

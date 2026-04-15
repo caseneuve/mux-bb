@@ -72,4 +72,11 @@
   (testing "stores context"
     (let [ctx {:sock "/tmp/test.sock" :session "test-sess"}
           backend (sut/make-backend ctx)]
-      (is (= ctx (:ctx backend))))))
+      (is (= ctx (:ctx backend)))))
+
+  (testing "list! returns vector not nil when no windows exist"
+    ;; Structural: the fn should always return a vector, even if tmux? returns nil
+    ;; Can't test with real tmux here, but verify the fn exists and returns a vector
+    ;; when given a fake sock (tmux? returns nil)
+    (let [backend (sut/make-backend {:sock "/tmp/nonexistent.sock" :session "none"})]
+      (is (vector? ((:list! backend)))))))

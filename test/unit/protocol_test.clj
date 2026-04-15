@@ -21,4 +21,8 @@
                                    "TMUX" ""}))))
 
   (testing "nil values treated as absent"
-    (is (= :tmux (sut/detect-mux {"CMUX_SOCKET_PATH" nil})))))
+    (is (= :tmux (sut/detect-mux {"CMUX_SOCKET_PATH" nil}))))
+
+  (testing "make-backend throws helpful error on unknown type"
+    (is (thrown-with-msg? clojure.lang.ExceptionInfo #"Unknown mux backend"
+          (sut/make-backend :zellij {})))))

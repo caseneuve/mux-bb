@@ -10,7 +10,7 @@
   [& args]
   (let [result (apply p/sh args)]
     (when-not (zero? (:exit result))
-      (throw (ex-info (str "Command failed (exit " (:exit result) "): " (pr-str args))
+      (throw (ex-info (str "Command failed (exit " (:exit result) "): " (str/join " " args))
                       {:exit (:exit result) :cmd args
                        :out (:out result) :err (:err result)})))
     (str/trim (:out result))))
