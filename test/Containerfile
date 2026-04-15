@@ -1,0 +1,3 @@
+FROM docker.io/babashka/babashka
+RUN apt-get update -qq && apt-get install -y -qq tmux && rm -rf /var/lib/apt/lists/*
+ENV END2EDN_SAFE_ENV=1

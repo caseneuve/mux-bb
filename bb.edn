@@ -1,0 +1,60 @@
+{:paths ["src" "test"]
+
+ :tasks
+ {:init
+  (do
+    (require '[clojure.string :as str])
+    (def end2edn-root
+      (or (System/getenv "END2EDN_ROOT")
+          (str (System/getenv "HOME") "/git/end2edn")))
+    (def podman-args
+      (str "podman run --rm "
+           "--network none "
+           "-v " (System/getProperty "user.dir") ":/work:ro "
+           "-v " end2edn-root ":" end2edn-root ":ro "
+           "--tmpfs /tmp:rw,mode=1777 "
+           "--tmpfs /var/tmp:rw,mode=1777 "
+           "-w /work "))
+    (def base-image "docker.io/babashka/babashka")
+    (def test-image "localhost/mux-bb-test")
+    (def podman-base (str podman-args base-image))
+    (def podman-test (str podman-args test-image))
+    (def unit-runner "bb -cp src:test test/unit/runner.clj")
+    (def e2e-runner (str "bb -cp src:test:" end2edn-root "/src test/e2e/runner.clj")))
+
+  build:test-image
+  {:doc "Build the podman test image (with tmux)"
+   :task (shell "podman build -t mux-bb-test -f test/Containerfile .")}
+
+  test
+  {:doc "Run unit and E2E tests in isolated podman containers"
+   :task (do
+           (run 'test:unit)
+           (println)
+           (run 'test:e2e))}
+
+  test:unit
+  {:doc "Run pure unit tests in podman (no tmux needed)"
+   :task (shell (str podman-base " " unit-runner))}
+
+  test:unit:host
+  {:doc "Run unit tests on host (quick iteration)"
+   :task (shell unit-runner)}
+
+  test:e2e
+  {:doc "Run E2E tests in podman (needs tmux)"
+   :task (shell (str podman-test " " e2e-runner
+                     (when (seq *command-line-args*)
+                       (str " " (str/join " " *command-line-args*)))))}
+
+  test:ci
+  {:doc "Run tests directly (CI only)"
+   :task (do
+           (when-not (System/getenv "CI")
+             (println "Error: test:ci is for CI only. Use 'bb test' locally.")
+             (System/exit 1))
+           (shell unit-runner)
+           (println)
+           (shell (str e2e-runner
+                       (when (seq *command-line-args*)
+                         (str " " (str/join " " *command-line-args*))))))}}}

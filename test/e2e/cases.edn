@@ -1,0 +1,67 @@
+;; E2E tests for the tmux backend.
+;; Requires real tmux — runs in podman container with tmux installed.
+;;
+;; Tests actual session creation, window management, send/capture round-trips.
+;; cmux E2E is not possible (macOS GUI app, can't run in containers).
+
+[{:suite :tmux-session-info
+  :desc "derive-session-info produces usable tmux identifiers"
+  :cases
+  [{:scenario :deterministic-output
+    :desc "Same project+branch always produces the same socket and session"
+    :when {:run ["bb" "-cp" "src"
+                 "-e" "(require '[mux.tmux :as t])
+                       (let [a (t/derive-session-info \"proj\" \"main\")
+                             b (t/derive-session-info \"proj\" \"main\")]
+                         (assert (= a b))
+                         (println \"sock:\" (:sock a))
+                         (println \"session:\" (:session a)))"]}
+    :then [[:exit-code 0]
+           [:stdout-contains "sock: /tmp/claude-proj-"]
+           [:stdout-contains "session: proj-"]]}
+
+   {:scenario :different-branches-differ
+    :desc "Different branches produce different sessions"
+    :when {:run ["bb" "-cp" "src"
+                 "-e" "(require '[mux.tmux :as t])
+                       (let [a (t/derive-session-info \"proj\" \"main\")
+                             b (t/derive-session-info \"proj\" \"dev\")]
+                         (assert (not= (:sock a) (:sock b)))
+                         (println \"OK\"))"]}
+    :then [[:exit-code 0]
+           [:stdout-contains "OK"]]}]}
+
+ {:suite :tmux-backend-lifecycle
+  :desc "tmux backend: create session, send command, capture output"
+  :given {:vars {:sock "/tmp/mux-bb-test.sock"
+                 :session "mux-bb-test"}}
+  :setup-cmd ["tmux" "-S" "{sock}" "new-session" "-d" "-s" "{session}" "-x" "200" "-y" "50"]
+  :teardown-cmd ["tmux" "-S" "{sock}" "kill-server"]
+  :cases
+  [{:scenario :new-window-and-list
+    :desc "Create a window and verify it appears in list"
+    :when {:run ["bb" "-cp" "src"
+                 "-e" "(require '[mux.tmux :as t])
+                       (let [be (t/make-backend {:sock \"{sock}\" :session \"{session}\"})]
+                         ((:new-window! be) \"test-win\")
+                         (let [wins ((:list! be))]
+                           (assert (some #(= \"test-win\" %) wins)
+                                   (str \"test-win not found in: \" wins))
+                           (println \"windows:\" (pr-str wins))))"]}
+    :then [[:exit-code 0]
+           [:stdout-contains "test-win"]]}
+
+   {:scenario :send-and-capture
+    :desc "Send a command and capture its output"
+    :when {:run [["bb" "-cp" "src"
+                  "-e" "(require '[mux.tmux :as t])
+                        (let [be (t/make-backend {:sock \"{sock}\" :session \"{session}\"})]
+                          ((:new-window! be) \"echo-win\")
+                          ((:send! be) \"echo-win\" \"echo HELLO_MUX_BB\")
+                          (Thread/sleep 500)
+                          (let [out ((:capture! be) \"echo-win\")]
+                            (assert (clojure.string/includes? out \"HELLO_MUX_BB\")
+                                    (str \"Expected HELLO_MUX_BB in output, got: \" out))
+                            (println \"captured OK\")))"]]}
+    :then [[:exit-code 0]
+           [:stdout-contains "captured OK"]]}]}]
