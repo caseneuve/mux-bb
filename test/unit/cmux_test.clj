@@ -89,7 +89,11 @@
 
   (testing "wait-for without signal flag"
     (is (= ["wait-for" "done"]
-           (sut/build-cmux-args :wait-for {:name "done"})))))
+           (sut/build-cmux-args :wait-for {:name "done"}))))
+
+  (testing "wait-for with nil name throws"
+    (is (thrown? AssertionError
+          (sut/build-cmux-args :wait-for {:name nil})))))
 
 (deftest build-cmux-args-notify-test
   (testing "full notify"

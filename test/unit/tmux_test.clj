@@ -41,7 +41,16 @@
 
   (testing "sanitizes dots and colons in project name"
     (let [info (sut/derive-session-info "my.project:v2" "main")]
-      (is (not (re-find #"[.:]" (:session info)))))))
+      (is (not (re-find #"[.:]" (:session info))))))
+
+  (testing "degenerate project name falls back to 'unnamed'"
+    (let [info (sut/derive-session-info "///" "main")]
+      (is (str/starts-with? (:session info) "unnamed-"))
+      (is (str/includes? (:sock info) "claude-unnamed-"))))
+
+  (testing "nil project falls back to 'unnamed'"
+    (let [info (sut/derive-session-info nil "main")]
+      (is (str/starts-with? (:session info) "unnamed-")))))
 
 ;; ---------------------------------------------------------------------------
 ;; build-target

@@ -38,10 +38,11 @@
     ["list-workspaces"]
 
     :wait-for
-    (cond-> ["wait-for"]
-      (:signal? params) (conj "-S")
-      true              (conj (:name params))
-      (:timeout params) (into ["--timeout" (str (:timeout params))]))
+    (do (assert (seq (:name params)) ":wait-for requires :name")
+        (cond-> ["wait-for"]
+          (:signal? params) (conj "-S")
+          true              (conj (:name params))
+          (:timeout params) (into ["--timeout" (str (:timeout params))])))
 
     :notify
     (cond-> ["notify"]

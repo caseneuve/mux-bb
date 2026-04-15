@@ -8,12 +8,14 @@
 
 (defn sanitize-name
   "Remove characters that are invalid in tmux session names and socket paths.
-   Replaces / . : with hyphens, collapses runs, trims edges."
+   Replaces / . : with hyphens, collapses runs, trims edges.
+   Returns \"unnamed\" for empty/degenerate inputs."
   [s]
-  (-> (or s "")
-      (str/replace #"[/.:]+" "-")
-      (str/replace #"-+" "-")
-      (str/replace #"^-|-$" "")))
+  (let [cleaned (-> (or s "")
+                    (str/replace #"[/.:]+" "-")
+                    (str/replace #"-+" "-")
+                    (str/replace #"^-|-$" ""))]
+    (if (str/blank? cleaned) "unnamed" cleaned)))
 
 ;; -- Pure helpers: hashing + session derivation --
 
