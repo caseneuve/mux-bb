@@ -89,7 +89,3 @@ bb test
 - tmux (for tmux backend)
 - [cmux](https://cmux.app) (for cmux backend, macOS only)
 
-## Consumers
-
-- [dotagents](https://github.com/piotr/dotagents) — personal agent config
-- [agentic-stuff](https://github.com/piotr/agentic-stuff) — work agent tooling (piotr/)
