@@ -1,5 +1,12 @@
 # mux-bb
 
+![vibe: slopped](.github/badges/vibe-slopped.svg)
+
+*Disclaimer:* I use this as a shared lib for helper scripts in my agentic flows. Ideas
+and guidelines are mine, implementation: clankers. The text below is LLM-generated.
+
+---
+
 Babashka library for talking to terminal multiplexers (tmux and cmux).
 
 Provides a uniform protocol for creating windows/workspaces, sending commands, and capturing output — regardless of whether the agent runs inside tmux or cmux.
