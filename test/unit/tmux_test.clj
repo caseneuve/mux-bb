@@ -15,14 +15,14 @@
       (is (= "main" (:branch info)))
       (is (string? (:hash info)))
       (is (= 6 (count (:hash info))))
-      (is (str/starts-with? (:sock info) "/tmp/claude-myapp-"))
+      (is (= "/tmp/mux.sock" (:sock info)))
       (is (str/starts-with? (:session info) "myapp-"))))
 
-  (testing "different branches produce different hashes"
+  (testing "different branches produce different sessions but same socket"
     (let [a (sut/derive-session-info "app" "main")
           b (sut/derive-session-info "app" "develop")]
       (is (not= (:hash a) (:hash b)))
-      (is (not= (:sock a) (:sock b)))
+      (is (= (:sock a) (:sock b)))
       (is (not= (:session a) (:session b)))))
 
   (testing "same inputs produce same outputs (deterministic)"
@@ -34,10 +34,17 @@
     (let [info (sut/derive-session-info "app" "main")]
       (is (= (sh/md5-short "main") (:hash info)))))
 
+  (testing "default socket is /tmp/mux.sock"
+    (let [info (sut/derive-session-info "app" "main")]
+      (is (= "/tmp/mux.sock" (:sock info)))))
+
+  (testing "custom socket override via opts"
+    (let [info (sut/derive-session-info "app" "main" {:sock "/tmp/custom.sock"})]
+      (is (= "/tmp/custom.sock" (:sock info)))))
+
   (testing "sanitizes slashes in project name"
     (let [info (sut/derive-session-info "my/project" "main")]
-      (is (not (str/includes? (:session info) "/")))
-      (is (not (str/includes? (last (str/split (:sock info) #"/")) "/")))))
+      (is (not (str/includes? (:session info) "/")))))
 
   (testing "sanitizes dots and colons in project name"
     (let [info (sut/derive-session-info "my.project:v2" "main")]
@@ -45,8 +52,7 @@
 
   (testing "degenerate project name falls back to 'unnamed'"
     (let [info (sut/derive-session-info "///" "main")]
-      (is (str/starts-with? (:session info) "unnamed-"))
-      (is (str/includes? (:sock info) "claude-unnamed-"))))
+      (is (str/starts-with? (:session info) "unnamed-"))))
 
   (testing "nil project falls back to 'unnamed'"
     (let [info (sut/derive-session-info nil "main")]

@@ -19,18 +19,24 @@
 
 ;; -- Pure helpers: hashing + session derivation --
 
+(def ^:private default-sock
+  "Default shared tmux socket path. One socket, many sessions."
+  "/tmp/mux.sock")
+
 (defn derive-session-info
   "Compute socket path and session name from project + branch.
    Sanitizes project name for tmux compatibility (no / . : in names).
+   Default socket: /tmp/mux.sock (shared). Override with opts :sock.
    Pure — no I/O."
-  [project branch]
-  (let [safe-project (sanitize-name project)
-        hash         (sh/md5-short branch)]
-    {:project project
-     :branch  branch
-     :hash    hash
-     :sock    (str "/tmp/claude-" safe-project "-" hash ".sock")
-     :session (str safe-project "-" hash)}))
+  ([project branch] (derive-session-info project branch {}))
+  ([project branch {:keys [sock]}]
+   (let [safe-project (sanitize-name project)
+         hash         (sh/md5-short branch)]
+     {:project project
+      :branch  branch
+      :hash    hash
+      :sock    (or sock default-sock)
+      :session (str safe-project "-" hash)})))
 
 ;; -- Pure helpers: target --
 
