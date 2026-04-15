@@ -10,7 +10,7 @@
 (defn escape-send-text
   "Escape newlines and tabs for cmux send (uses \\n and \\t escapes)."
   [text]
-  (-> text
+  (-> (or text "")
       (str/replace "\n" "\\n")
       (str/replace "\t" "\\t")))
 
@@ -21,18 +21,18 @@
   (case op
     :send
     (cond-> ["send"]
-      (:workspace params) (into ["--workspace" (:workspace params)])
-      true                (into ["--" (escape-send-text (:text params))]))
+      (seq (:workspace params)) (into ["--workspace" (:workspace params)])
+      true                      (into ["--" (escape-send-text (:text params))]))
 
     :capture
     (cond-> ["capture-pane"]
-      (:workspace params) (into ["--workspace" (:workspace params)])
-      true                (into ["--scrollback" "--lines" (str (:lines params))]))
+      (seq (:workspace params)) (into ["--workspace" (:workspace params)])
+      true                      (into ["--scrollback" "--lines" (str (or (:lines params) 1000))]))
 
     :new-workspace
     (cond-> ["new-workspace"]
-      (:name params) (into ["--name" (:name params)])
-      (:cwd params)  (into ["--cwd" (:cwd params)]))
+      (seq (:name params)) (into ["--name" (:name params)])
+      (seq (:cwd params))  (into ["--cwd" (:cwd params)]))
 
     :list-workspaces
     ["list-workspaces"]
@@ -45,19 +45,19 @@
 
     :notify
     (cond-> ["notify"]
-      (:workspace params) (into ["--workspace" (:workspace params)])
-      (:title params)     (into ["--title" (:title params)])
-      (:body params)      (into ["--body" (:body params)]))
+      (seq (:workspace params)) (into ["--workspace" (:workspace params)])
+      (seq (:title params))     (into ["--title" (:title params)])
+      (seq (:body params))      (into ["--body" (:body params)]))
 
     :set-description
     (cond-> ["workspace-action" "--action" "set-description"]
-      (:workspace params) (into ["--workspace" (:workspace params)])
-      (:description params) (into ["--description" (:description params)]))
+      (seq (:workspace params))   (into ["--workspace" (:workspace params)])
+      (seq (:description params)) (into ["--description" (:description params)]))
 
     :set-color
     (cond-> ["workspace-action" "--action" "set-color"]
-      (:workspace params) (into ["--workspace" (:workspace params)])
-      (:color params)     (into ["--color" (:color params)]))))
+      (seq (:workspace params)) (into ["--workspace" (:workspace params)])
+      (seq (:color params))     (into ["--color" (:color params)]))))
 
 (defn parse-workspaces
   "Parse cmux list-workspaces output into a vec of maps.

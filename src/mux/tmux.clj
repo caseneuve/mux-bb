@@ -4,18 +4,31 @@
   (:require [mux.shell :as sh]
             [clojure.string :as str]))
 
+;; -- Pure helpers: name sanitization --
+
+(defn sanitize-name
+  "Remove characters that are invalid in tmux session names and socket paths.
+   Replaces / . : with hyphens, collapses runs, trims edges."
+  [s]
+  (-> (or s "")
+      (str/replace #"[/.:]+" "-")
+      (str/replace #"-+" "-")
+      (str/replace #"^-|-$" "")))
+
 ;; -- Pure helpers: hashing + session derivation --
 
 (defn derive-session-info
   "Compute socket path and session name from project + branch.
+   Sanitizes project name for tmux compatibility (no / . : in names).
    Pure — no I/O."
   [project branch]
-  (let [hash (sh/md5-short branch)]
+  (let [safe-project (sanitize-name project)
+        hash         (sh/md5-short branch)]
     {:project project
      :branch  branch
      :hash    hash
-     :sock    (str "/tmp/claude-" project "-" hash ".sock")
-     :session (str project "-" hash)}))
+     :sock    (str "/tmp/claude-" safe-project "-" hash ".sock")
+     :session (str safe-project "-" hash)}))
 
 ;; -- Pure helpers: target --
 

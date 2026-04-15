@@ -32,7 +32,16 @@
 
   (testing "hash is md5-short of branch"
     (let [info (sut/derive-session-info "app" "main")]
-      (is (= (sh/md5-short "main") (:hash info))))))
+      (is (= (sh/md5-short "main") (:hash info)))))
+
+  (testing "sanitizes slashes in project name"
+    (let [info (sut/derive-session-info "my/project" "main")]
+      (is (not (str/includes? (:session info) "/")))
+      (is (not (str/includes? (last (str/split (:sock info) #"/")) "/")))))
+
+  (testing "sanitizes dots and colons in project name"
+    (let [info (sut/derive-session-info "my.project:v2" "main")]
+      (is (not (re-find #"[.:]" (:session info)))))))
 
 ;; ---------------------------------------------------------------------------
 ;; build-target

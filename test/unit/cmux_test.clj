@@ -18,7 +18,13 @@
     (is (= "echo hi" (sut/escape-send-text "echo hi"))))
 
   (testing "mixed newlines and tabs"
-    (is (= "a\\nb\\tc\\n" (sut/escape-send-text "a\nb\tc\n")))))
+    (is (= "a\\nb\\tc\\n" (sut/escape-send-text "a\nb\tc\n"))))
+
+  (testing "nil input returns empty string"
+    (is (= "" (sut/escape-send-text nil))))
+
+  (testing "empty string unchanged"
+    (is (= "" (sut/escape-send-text "")))))
 
 ;; ---------------------------------------------------------------------------
 ;; build-cmux-args
@@ -31,7 +37,15 @@
 
   (testing "send without workspace"
     (is (= ["send" "--" "echo hi\\n"]
-           (sut/build-cmux-args :send {:text "echo hi\n"})))))
+           (sut/build-cmux-args :send {:text "echo hi\n"}))))
+
+  (testing "send with nil text defaults to empty"
+    (is (= ["send" "--" ""]
+           (sut/build-cmux-args :send {:text nil}))))
+
+  (testing "send with empty-string workspace omits --workspace"
+    (is (= ["send" "--" "hi"]
+           (sut/build-cmux-args :send {:workspace "" :text "hi"})))))
 
 (deftest build-cmux-args-capture-test
   (testing "capture with workspace"
