@@ -72,13 +72,38 @@ bb test             # All tests in podman
 - Prefer `babashka.process`, `babashka.fs`, `babashka.cli`
 - `*command-line-args*` instead of Java main args
 
+## Work tracking
+
+- Every non-trivial change should reference a todo in `todos/NNNN-*.md`.
+- When work starts, set todo `status: in_progress` in the first commit.
+- Mark todo `status: done` in the final commit for that scope.
+- Include the todo ID in each commit subject for multi-commit branches (e.g. `[tmux(#0002)] ...`).
+
+## Branches & merges
+
+- Trunk is the repository default branch (currently `master`).
+- Single-commit chore-style work may land directly on trunk.
+- Multi-commit work must use a flat feature branch: `NNNN-slug` (or `NNNN.M-slug` for sub-task).
+  - Example: `0002-tmux-pane-spawn`
+  - Do **not** use nested names like `trunk/0002-...`.
+- Merge with `git merge --ff-only`; if refused, rebase on trunk first.
+- Never merge without a completed peer review approval.
+- Delete feature branch after merge.
+- Never `git push` without explicit human approval.
+
 ## Commits
 
 ```
 [category] short description
 ```
 
-Categories: `mux`, `tmux`, `cmux`, `shell`, `test`, `docs`
+Categories: `mux`, `tmux`, `cmux`, `shell`, `test`, `docs`, `chore`
+
+### Checkpoint commits
+
+- Use checkpoint commits for meaningful RED/GREEN/REFACTOR steps so rollback/bisect is easy.
+- Keep one logical change per commit; do not squash unrelated concerns.
+- Do not amend commits that were reviewed or pushed.
 
 ## Safety
 
