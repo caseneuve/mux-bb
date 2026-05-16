@@ -1,6 +1,6 @@
 ---
 title: tmux pane spawn for agent communication
-status: in_progress
+status: done
 priority: medium
 type: feature
 labels: []
