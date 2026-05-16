@@ -12,15 +12,20 @@ blocks: [0004]
 
 ## Context
 
-`mux-bb` currently shells out through blocking helpers (`sh`/`sh?`) in `src/mux/shell.clj`. We want native `babashka.process/process` usage as the default execution model so mux operations can support non-blocking behavior cleanly.
+`mux-bb` currently shells out through blocking helpers (`sh`/`sh?`) in `src/mux/shell.clj`.
+This todo is **shell-boundary only**: introduce native `babashka.process/process` primitives and lifecycle rules without changing backend protocol semantics yet.
 
 ## Acceptance Criteria
 
-- [ ] Add process-native helpers in `src/mux/shell.clj` for spawning and optional waiting.
-- [ ] Preserve existing error data shape (`:exit`, `:cmd`, `:out`, `:err`) or document migration.
-- [ ] Keep backward compatibility for callers that still require blocking calls.
-- [ ] Unit tests cover process helper behavior and failure mapping.
-- [ ] README documents the new shell execution model.
+- [ ] Add process-native helpers in `src/mux/shell.clj` (spawn + wait/check adapters) while keeping existing blocking behavior available.
+- [ ] Define a process-handle abstraction and lifecycle ownership rules:
+  - who owns stdout/stderr consumption,
+  - who closes streams,
+  - who performs wait/timeout/kill.
+- [ ] Define normalized result/error data shape for both blocking and non-blocking paths (including `:exit`, `:cmd`, `:out`, `:err`, timeout/cancel metadata).
+- [ ] Preserve backward compatibility for existing blocking callers in this todo (no protocol contract change here).
+- [ ] Unit tests cover success/failure mapping, timeout behavior, and lifecycle cleanup guarantees.
+- [ ] README documents shell execution model and lifecycle ownership expectations.
 
 ## Affected Files
 
@@ -30,5 +35,5 @@ blocks: [0004]
 
 ## Notes
 
-- FCIS rule: keep shell process management at I/O boundary; pure layers unchanged.
-- This is prerequisite for making backend operations fully non-blocking (todo 0004).
+- FCIS rule: keep process management at I/O boundary; pure layers unchanged.
+- This todo is prerequisite infrastructure for 0004 and must ship without backend API breakage.
