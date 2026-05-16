@@ -132,9 +132,10 @@
          (catch clojure.lang.ExceptionInfo e
            (let [d (ex-data e)
                  msg (.getMessage e)
+                 detail (str/lower-case (str (or (:err d) "") " " msg))
                  cause (cond
-                         (str/includes? msg "tmux") :tmux-missing
-                         (re-find #"can't find|unknown" (str/lower-case (or (:err d) msg))) :invalid-target
+                         (re-find #"can't find|unknown" detail) :invalid-target
+                         (re-find #"no such file|cannot run program.*tmux|command not found" detail) :tmux-missing
                          :else :split-failed)]
              (throw (ex-info "tmux pane spawn failed"
                              {:cause cause

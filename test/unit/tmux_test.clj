@@ -132,4 +132,14 @@
       (with-redefs [sut/tmux? (fn [& _] nil)]
         (let [e (try ((:spawn-pane! backend) {:command "echo hi"})
                      (catch Exception ex ex))]
+          (is (= :invalid-target (:cause (ex-data e))))))))
+
+  (testing "spawn-pane! error mapping prioritizes invalid target over generic tmux mention"
+    (let [backend (sut/make-backend {:sock "/tmp/test.sock" :session "sess"})]
+      (with-redefs [sut/tmux? (fn [& _] "sess:main.0")
+                    sut/tmux! (fn [& _]
+                                (throw (ex-info "Command failed (exit 1): tmux ..."
+                                                {:exit 1 :err "can't find pane: sess:main.0"})))]
+        (let [e (try ((:spawn-pane! backend) {:command "echo hi"})
+                     (catch Exception ex ex))]
           (is (= :invalid-target (:cause (ex-data e)))))))))
