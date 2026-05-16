@@ -45,6 +45,28 @@
   [session window]
   (str session ":" window))
 
+(defn direction->flags
+  "Map logical pane direction to tmux split-window flags."
+  [direction]
+  (case (or direction :below)
+    :right ["-h"]
+    :left  ["-h" "-b"]
+    :below ["-v"]
+    :above ["-v" "-b"]
+    (throw (ex-info (str "Invalid split direction: " direction)
+                    {:cause :invalid-direction :direction direction}))))
+
+(defn build-spawn-pane-args
+  "Pure tmux split-window argv builder.
+   opts: :direction :size :target :cwd :command"
+  [{:keys [direction size target cwd command]}]
+  (cond-> ["split-window" "-P" "-F" "#{session_name}|#{window_name}|#{pane_id}|#{session_name}:#{window_name}.#{pane_index}"]
+    true (into (direction->flags direction))
+    (seq size) (into ["-l" size])
+    (seq target) (into ["-t" target])
+    (seq cwd) (into ["-c" cwd])
+    (seq command) (conj command)))
+
 ;; -- tmux shell wrappers (imperative) --
 
 (defn tmux!
@@ -65,7 +87,7 @@
 
 (defn make-backend
   "Create a tmux mux backend from a context map {:sock :session}.
-   Returns a protocol map with :new-window! :send! :capture! :list! :ctx.
+   Returns a protocol map with :new-window! :send! :capture! :list! :spawn-pane! :ctx.
    :capture! returns last 1000 lines of scrollback."
   [{:keys [sock session] :as ctx}]
   {:name "tmux"
@@ -89,4 +111,34 @@
    (fn []
      (or (some-> (tmux? sock "list-windows" "-t" session "-F" "#W")
                  str/split-lines)
-         []))})
+         []))
+
+   :spawn-pane!
+   (fn [opts]
+     (let [resolved-target (or (:target opts)
+                               (some-> (tmux? sock "display-message" "-p" "#{session_name}:#{window_name}.#{pane_index}") str/trim))
+           args (assoc opts :target resolved-target)]
+       (when-not resolved-target
+         (throw (ex-info "No tmux target available for pane split"
+                         {:cause :invalid-target :args opts :target nil})))
+       (try
+         (let [out (apply tmux! sock (build-spawn-pane-args args))
+               [sess win pane-id target] (str/split out #"\|")]
+           {:session sess
+            :window win
+            :pane-id pane-id
+            :target target
+            :launch-command (:command opts)})
+         (catch clojure.lang.ExceptionInfo e
+           (let [d (ex-data e)
+                 msg (.getMessage e)
+                 cause (cond
+                         (str/includes? msg "tmux") :tmux-missing
+                         (re-find #"can't find|unknown" (str/lower-case (or (:err d) msg))) :invalid-target
+                         :else :split-failed)]
+             (throw (ex-info "tmux pane spawn failed"
+                             {:cause cause
+                              :args opts
+                              :target resolved-target
+                              :stderr (:err d)
+                              :exit (:exit d)} e)))))))})

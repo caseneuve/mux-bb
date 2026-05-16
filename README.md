@@ -63,15 +63,25 @@ All backends return a map with these core keys:
 | `:capture!` | `(fn [name] → string)` | Read terminal scrollback |
 | `:list!` | `(fn [] → [name ...])` | List known windows |
 
-cmux backends also provide extended keys:
+Extended keys (backend-specific):
 
 | Key | Signature | Description |
 |-----|-----------|-------------|
-| `:wait-for!` | `(fn [signal timeout])` | Block until a named signal |
-| `:signal-cmd` | `(fn [signal] → string)` | Shell command to fire a signal |
-| `:notify!` | `(fn [name title body])` | Sidebar notification |
-| `:set-description!` | `(fn [name text])` | Set workspace description |
-| `:set-color!` | `(fn [name color])` | Set workspace tab color |
+| `:spawn-pane!` | `(fn [opts] → pane-meta)` | Spawn a tmux split pane and optionally run a command |
+| `:wait-for!` | `(fn [signal timeout])` | Block until a named signal (cmux) |
+| `:signal-cmd` | `(fn [signal] → string)` | Shell command to fire a signal (cmux) |
+| `:notify!` | `(fn [name title body])` | Sidebar notification (cmux) |
+| `:set-description!` | `(fn [name text])` | Set workspace description (cmux) |
+| `:set-color!` | `(fn [name color])` | Set workspace tab color (cmux) |
+
+`(:spawn-pane! be opts)` options:
+- `:direction` => `:right | :left | :below | :above` (default `:below`)
+- `:size` => tmux size string like `"30%"` or `"20"` (optional)
+- `:command` => shell command string (optional)
+- `:target` => tmux pane/window/session target (optional)
+- `:cwd` => working directory for spawned pane (optional)
+
+Returns: `{:session :window :pane-id :target :launch-command}`
 
 ## Testing
 

@@ -7,7 +7,8 @@
        :send!        (fn [window-name text] → any)   Send text + Enter
        :capture!     (fn [window-name] → string)     Read terminal scrollback
        :list!        (fn [] → [name ...])            List known windows (always returns [], never nil)
-     Extended (optional, cmux-only for now):
+     Extended (optional, backend-specific):
+       :spawn-pane!     (fn [opts] → pane-meta)      Spawn a split pane (tmux-first)
        :wait-for!        (fn [signal timeout] → any) Block until signal
        :signal-cmd       (fn [signal] → string)      Shell cmd to fire signal
        :notify!          (fn [window title body])     Sidebar notification

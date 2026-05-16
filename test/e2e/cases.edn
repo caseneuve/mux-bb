@@ -17,7 +17,7 @@
                          (println \"sock:\" (:sock a))
                          (println \"session:\" (:session a)))"]}
     :then [[:exit-code 0]
-           [:stdout-contains "sock: /tmp/claude-proj-"]
+           [:stdout-contains "sock: /tmp/mux.sock"]
            [:stdout-contains "session: proj-"]]}
 
    {:scenario :different-branches-differ
@@ -26,7 +26,7 @@
                  "-e" "(require '[mux.tmux :as t])
                        (let [a (t/derive-session-info \"proj\" \"main\")
                              b (t/derive-session-info \"proj\" \"dev\")]
-                         (assert (not= (:sock a) (:sock b)))
+                         (assert (not= (:session a) (:session b)))
                          (println \"OK\"))"]}
     :then [[:exit-code 0]
            [:stdout-contains "OK"]]}]}
@@ -64,4 +64,23 @@
                                     (str \"Expected HELLO_MUX_BB in output, got: \" out))
                             (println \"captured OK\")))"]}
     :then [[:exit-code 0]
-           [:stdout-contains "captured OK"]]}]}]
+           [:stdout-contains "captured OK"]]}
+
+   {:scenario :spawn-pane-and-capture
+    :desc "Spawn split pane, run command, verify output can be captured from spawned pane"
+    :when {:run ["bb" "-cp" "src"
+                 "-e" "(require '[mux.tmux :as t]
+                                '[clojure.string :as str])
+                       (let [be (t/make-backend {:sock \"{sock}\" :session \"{session}\"})]
+                         ((:new-window! be) \"pane-win\")
+                         (let [meta ((:spawn-pane! be) {:target \"{session}:pane-win.0\"
+                                                        :direction :right
+                                                        :command \"sh -lc 'echo PANE_OK; sleep 2'\"})]
+                           (assert (re-find #\"^%\\d+$\" (:pane-id meta)) (str \"bad pane-id: \" meta))
+                           (Thread/sleep 500)
+                           (let [out (t/tmux! \"{sock}\" \"capture-pane\" \"-t\" (:pane-id meta) \"-p\" \"-S\" \"-50\")]
+                             (assert (str/includes? out \"PANE_OK\")
+                                     (str \"Expected PANE_OK in pane output, got: \" out))
+                             (println \"spawn captured OK\"))))"]}
+    :then [[:exit-code 0]
+           [:stdout-contains "spawn captured OK"]]}]}]
