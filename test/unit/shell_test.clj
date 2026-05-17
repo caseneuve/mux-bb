@@ -45,3 +45,27 @@
 
   (testing "returns nil on missing command"
     (is (nil? (sut/sh? "nonexistent-command-xyz")))))
+
+(deftest process-native-helpers-test
+  (testing "spawn returns a live process handle"
+    (let [proc (sut/spawn "sleep" "0.1")]
+      (is (sut/alive? proc))
+      (sut/wait proc)))
+
+  (testing "run! waits and returns trimmed stdout"
+    (is (= "hello" (sut/run! "echo" "hello"))))
+
+  (testing "wait throws with normalized data on non-zero exit"
+    (let [e (try
+              (sut/run! "sh" "-c" "echo boom >&2; exit 7")
+              (catch Exception ex ex))
+          d (ex-data e)]
+      (is (= 7 (:exit d)))
+      (is (contains? d :cmd))
+      (is (contains? d :err))))
+
+  (testing "wait with timeout returns tagged timeout map"
+    (let [proc (sut/spawn "sleep" "2")
+          out (sut/wait proc {:timeout-ms 50})]
+      (is (= :timeout (:status out)))
+      (sut/kill! proc))))
