@@ -43,7 +43,12 @@
    (if timeout-ms
      (let [res (deref proc timeout-ms ::timeout)]
        (if (= ::timeout res)
-         {:status :timeout :timeout-ms timeout-ms}
+         {:status :timeout
+          :timeout-ms timeout-ms
+          :cmd (:cmd proc)
+          :exit nil
+          :out nil
+          :err nil}
          (normalize-result res (:cmd res))))
      (normalize-result @proc (:cmd @proc)))))
 

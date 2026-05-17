@@ -17,15 +17,15 @@ This todo is **shell-boundary only**: introduce native `babashka.process/process
 
 ## Acceptance Criteria
 
-- [ ] Add process-native helpers in `src/mux/shell.clj` (spawn + wait/check adapters) while keeping existing blocking behavior available.
-- [ ] Define a process-handle abstraction and lifecycle ownership rules:
+- [x] Add process-native helpers in `src/mux/shell.clj` (spawn + wait/check adapters) while keeping existing blocking behavior available.
+- [x] Define a process-handle abstraction and lifecycle ownership rules:
   - who owns stdout/stderr consumption,
   - who closes streams,
   - who performs wait/timeout/kill.
-- [ ] Define normalized result/error data shape for both blocking and non-blocking paths (including `:exit`, `:cmd`, `:out`, `:err`, timeout/cancel metadata).
-- [ ] Preserve backward compatibility for existing blocking callers in this todo (no protocol contract change here).
-- [ ] Unit tests cover success/failure mapping, timeout behavior, and lifecycle cleanup guarantees.
-- [ ] README documents shell execution model and lifecycle ownership expectations.
+- [x] Define normalized result/error data shape for both blocking and non-blocking paths (including `:exit`, `:cmd`, `:out`, `:err`, timeout/cancel metadata).
+- [x] Preserve backward compatibility for existing blocking callers in this todo (no protocol contract change here).
+- [x] Unit tests cover success/failure mapping, timeout behavior, and lifecycle cleanup guarantees.
+- [x] README documents shell execution model and lifecycle ownership expectations.
 
 ## Affected Files
 

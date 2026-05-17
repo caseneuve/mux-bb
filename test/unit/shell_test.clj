@@ -68,4 +68,7 @@
     (let [proc (sut/spawn "sleep" "2")
           out (sut/wait proc {:timeout-ms 50})]
       (is (= :timeout (:status out)))
-      (sut/kill! proc))))
+      (is (contains? out :cmd))
+      (sut/kill! proc)
+      (Thread/sleep 50)
+      (is (false? (sut/alive? proc))))))

@@ -108,7 +108,11 @@ bb test
 - Non-blocking path: `mux.shell/spawn` + `mux.shell/wait`
 - Lifecycle helpers: `mux.shell/alive?`, `mux.shell/kill!`
 
-Non-blocking helpers return normalized result/error maps containing command/exit/stdout/stderr metadata.
+Non-blocking contract:
+- `spawn` returns immediately with a process handle; caller owns lifecycle.
+- `wait` with timeout does **not** stop the process; it returns `{:status :timeout ...}` and caller must `kill!` or `wait` later.
+- `wait` completion returns normalized metadata map: `:cmd :exit :out :err`.
+- timeout results include `:cmd` plus `:status :timeout` and `:timeout-ms`.
 
 ## Dependencies
 
