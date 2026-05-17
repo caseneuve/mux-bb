@@ -127,13 +127,9 @@
    :notify! sends a notification to a workspace sidebar."
   [opts]
   (let [cmux-bin   (resolve-cmux-bin opts)
-        workspaces (atom {})]
-    {:name "cmux"
-     :ctx  {:cmux-bin cmux-bin :workspaces workspaces}
-
-     :new-window!
-     (fn [window-name]
-       (or (when-let [existing (find-workspace-by-name cmux-bin window-name)]
+        workspaces (atom {})
+        new-window! (fn [window-name]
+                      (or (when-let [existing (find-workspace-by-name cmux-bin window-name)]
              (swap! workspaces assoc window-name existing)
              existing)
            (let [prev-ws (try (str/trim (cmux! cmux-bin "current-workspace"))
@@ -156,20 +152,22 @@
                      retry)
                  (throw (ex-info (str "cmux: failed to create or find workspace '" window-name "'")
                                  {:type :cmux-error :output result})))))))
-
-     :send!
-     (fn [window-name text]
-       (let [ws-id (require-workspace! workspaces window-name)
-             args  (build-cmux-args :send {:workspace ws-id
-                                           :text (str text "\n")})]
-         (apply cmux! cmux-bin args)))
-
-     :capture!
-     (fn [window-name]
-       (let [ws-id (require-workspace! workspaces window-name)
-             args  (build-cmux-args :capture {:workspace ws-id
-                                              :lines scrollback-lines})]
-         (apply cmux! cmux-bin args)))
+        send! (fn [window-name text]
+                (let [ws-id (require-workspace! workspaces window-name)
+                      args  (build-cmux-args :send {:workspace ws-id :text (str text "\n")})]
+                  (apply cmux! cmux-bin args)))
+        capture! (fn [window-name]
+                   (let [ws-id (require-workspace! workspaces window-name)
+                         args  (build-cmux-args :capture {:workspace ws-id :lines scrollback-lines})]
+                     (apply cmux! cmux-bin args)))
+        list! (fn [] (keys @workspaces))]
+    {:name "cmux"
+     :ctx  {:cmux-bin cmux-bin :workspaces workspaces}
+     :new-window! new-window!
+     :send! send!
+     :capture! capture!
+     :new-window-async! (fn [window-name] (future (new-window! window-name)))
+     :send-async! (fn [window-name text] (future (send! window-name text)))
 
      :wait-for!
      (fn [signal-name timeout]
@@ -205,6 +203,4 @@
          (try (apply cmux! cmux-bin args)
               (catch Exception _ nil))))
 
-     :list!
-     (fn []
-       (keys @workspaces))}))
+     :list! list!}))

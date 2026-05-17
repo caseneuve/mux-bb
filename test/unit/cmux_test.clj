@@ -166,6 +166,8 @@
       (is (fn? (:send! backend)))
       (is (fn? (:capture! backend)))
       (is (fn? (:list! backend)))
+      (is (fn? (:new-window-async! backend)))
+      (is (fn? (:send-async! backend)))
       (is (= "cmux" (:name backend)))))
 
   (testing "returns map with extended protocol keys"
@@ -193,7 +195,12 @@
   (testing "signal-cmd returns shell command string"
     (let [backend (sut/make-backend {:cmux-bin "/usr/bin/cmux"})]
       (is (= "/usr/bin/cmux wait-for -S my-signal"
-             ((:signal-cmd backend) "my-signal"))))))
+             ((:signal-cmd backend) "my-signal")))))
+
+  (testing "async wrappers return futures"
+    (let [backend (sut/make-backend {:cmux-bin "/usr/bin/cmux"})]
+      (with-redefs [sut/cmux! (fn [& _] "OK workspace:1")]
+        (is (future? ((:new-window-async! backend) "w")))))))
 
 ;; ---------------------------------------------------------------------------
 ;; OK prefix stripping (used in new-window! result parsing)

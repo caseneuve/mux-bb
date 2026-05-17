@@ -87,59 +87,49 @@
 
 (defn make-backend
   "Create a tmux mux backend from a context map {:sock :session}.
-   Returns a protocol map with :new-window! :send! :capture! :list! :spawn-pane! :ctx.
+   Returns protocol fns and async counterparts for command ops.
    :capture! returns last 1000 lines of scrollback."
   [{:keys [sock session] :as ctx}]
-  {:name "tmux"
-   :ctx  ctx
-
-   :new-window!
-   (fn [window-name]
-     (tmux! sock "new-window" "-t" session "-n" window-name))
-
-   :send!
-   (fn [window-name text]
-     (tmux! sock "send-keys" "-t" (build-target session window-name) text "Enter"))
-
-   :capture!
-   (fn [window-name]
-     (tmux! sock "capture-pane"
-            "-t" (build-target session window-name)
-            "-p" "-S" (str "-" scrollback-lines)))
-
-   :list!
-   (fn []
-     (or (some-> (tmux? sock "list-windows" "-t" session "-F" "#W")
-                 str/split-lines)
-         []))
-
-   :spawn-pane!
-   (fn [opts]
-     (let [resolved-target (or (:target opts)
-                               (some-> (tmux? sock "display-message" "-p" "#{session_name}:#{window_name}.#{pane_index}") str/trim))
-           args (assoc opts :target resolved-target)]
-       (when-not resolved-target
-         (throw (ex-info "No tmux target available for pane split"
-                         {:cause :invalid-target :args opts :target nil})))
-       (try
-         (let [out (apply tmux! sock (build-spawn-pane-args args))
-               [sess win pane-id target] (str/split out #"\|")]
-           {:session sess
-            :window win
-            :pane-id pane-id
-            :target target
-            :launch-command (:command opts)})
-         (catch clojure.lang.ExceptionInfo e
-           (let [d (ex-data e)
-                 msg (.getMessage e)
-                 detail (str/lower-case (str (or (:err d) "") " " msg))
-                 cause (cond
-                         (re-find #"can't find|unknown" detail) :invalid-target
-                         (re-find #"no such file|cannot run program.*tmux|command not found" detail) :tmux-missing
-                         :else :split-failed)]
-             (throw (ex-info "tmux pane spawn failed"
-                             {:cause cause
-                              :args opts
-                              :target resolved-target
-                              :stderr (:err d)
-                              :exit (:exit d)} e)))))))})
+  (let [new-window! (fn [window-name]
+                      (tmux! sock "new-window" "-t" session "-n" window-name))
+        send! (fn [window-name text]
+                (tmux! sock "send-keys" "-t" (build-target session window-name) text "Enter"))
+        capture! (fn [window-name]
+                   (tmux! sock "capture-pane"
+                          "-t" (build-target session window-name)
+                          "-p" "-S" (str "-" scrollback-lines)))
+        list! (fn []
+                (or (some-> (tmux? sock "list-windows" "-t" session "-F" "#W")
+                            str/split-lines)
+                    []))
+        spawn-pane! (fn [opts]
+                      (let [resolved-target (or (:target opts)
+                                                (some-> (tmux? sock "display-message" "-p" "#{session_name}:#{window_name}.#{pane_index}") str/trim))
+                            args (assoc opts :target resolved-target)]
+                        (when-not resolved-target
+                          (throw (ex-info "No tmux target available for pane split"
+                                          {:cause :invalid-target :args opts :target nil})))
+                        (try
+                          (let [out (apply tmux! sock (build-spawn-pane-args args))
+                                [sess win pane-id target] (str/split out #"\|")]
+                            {:session sess :window win :pane-id pane-id :target target :launch-command (:command opts)})
+                          (catch clojure.lang.ExceptionInfo e
+                            (let [d (ex-data e)
+                                  msg (.getMessage e)
+                                  detail (str/lower-case (str (or (:err d) "") " " msg))
+                                  cause (cond
+                                          (re-find #"can't find|unknown" detail) :invalid-target
+                                          (re-find #"no such file|cannot run program.*tmux|command not found" detail) :tmux-missing
+                                          :else :split-failed)]
+                              (throw (ex-info "tmux pane spawn failed"
+                                              {:cause cause :args opts :target resolved-target :stderr (:err d) :exit (:exit d)} e)))))))]
+    {:name "tmux"
+     :ctx  ctx
+     :new-window! new-window!
+     :send! send!
+     :capture! capture!
+     :list! list!
+     :spawn-pane! spawn-pane!
+     :new-window-async! (fn [window-name] (future (new-window! window-name)))
+     :send-async! (fn [window-name text] (future (send! window-name text)))
+     :spawn-pane-async! (fn [opts] (future (spawn-pane! opts)))}))

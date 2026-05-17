@@ -104,6 +104,9 @@
       (is (fn? (:capture! backend)))
       (is (fn? (:list! backend)))
       (is (fn? (:spawn-pane! backend)))
+      (is (fn? (:new-window-async! backend)))
+      (is (fn? (:send-async! backend)))
+      (is (fn? (:spawn-pane-async! backend)))
       (is (= "tmux" (:name backend)))))
 
   (testing "stores context"
@@ -133,6 +136,17 @@
         (let [e (try ((:spawn-pane! backend) {:command "echo hi"})
                      (catch Exception ex ex))]
           (is (= :invalid-target (:cause (ex-data e))))))))
+
+  (testing "async wrappers return futures"
+    (let [backend (sut/make-backend {:sock "/tmp/test.sock" :session "sess"})]
+      (with-redefs [sut/tmux? (fn [& _] "sess:main.0")
+                    sut/tmux! (fn [& args]
+                                (if (= "split-window" (nth args 1 nil))
+                                  "sess|main|%7|sess:main.1"
+                                  "ok"))]
+        (is (= "ok" @((:new-window-async! backend) "w")))
+        (is (= "ok" @((:send-async! backend) "w" "echo hi")))
+        (is (= "%7" (:pane-id @((:spawn-pane-async! backend) {:command "echo OK"})))))))
 
   (testing "spawn-pane! error mapping prioritizes invalid target over generic tmux mention"
     (let [backend (sut/make-backend {:sock "/tmp/test.sock" :session "sess"})]

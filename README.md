@@ -63,11 +63,19 @@ All backends return a map with these core keys:
 | `:capture!` | `(fn [name] → string)` | Read terminal scrollback |
 | `:list!` | `(fn [] → [name ...])` | List known windows |
 
+Core API remains synchronous, with optional async command variants:
+
+| Key | Signature | Description |
+|-----|-----------|-------------|
+| `:new-window-async!` | `(fn [name] → future)` | Async variant of `:new-window!` |
+| `:send-async!` | `(fn [name text] → future)` | Async variant of `:send!` |
+
 Extended keys (backend-specific):
 
 | Key | Signature | Description |
 |-----|-----------|-------------|
 | `:spawn-pane!` | `(fn [opts] → pane-meta)` | Spawn a tmux split pane and optionally run a command |
+| `:spawn-pane-async!` | `(fn [opts] → future)` | Async variant of `:spawn-pane!` (tmux) |
 | `:wait-for!` | `(fn [signal timeout])` | Block until a named signal (cmux) |
 | `:signal-cmd` | `(fn [signal] → string)` | Shell command to fire a signal (cmux) |
 | `:notify!` | `(fn [name title body])` | Sidebar notification (cmux) |
