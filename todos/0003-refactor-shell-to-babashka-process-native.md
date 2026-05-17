@@ -1,6 +1,6 @@
 ---
 title: refactor shell boundary to native babashka.process primitives
-status: in_progress
+status: done
 priority: high
 type: refactor
 labels: []

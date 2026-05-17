@@ -100,6 +100,16 @@ bb test:e2e
 bb test
 ```
 
+## Shell execution model
+
+`mux-bb` uses `babashka.process` at the shell boundary.
+
+- Blocking path: `mux.shell/sh` (throws on non-zero exit)
+- Non-blocking path: `mux.shell/spawn` + `mux.shell/wait`
+- Lifecycle helpers: `mux.shell/alive?`, `mux.shell/kill!`
+
+Non-blocking helpers return normalized result/error maps containing command/exit/stdout/stderr metadata.
+
 ## Dependencies
 
 - [Babashka](https://github.com/babashka/babashka) (runtime)
