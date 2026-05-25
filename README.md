@@ -70,6 +70,19 @@ Core API remains synchronous, with optional async command variants:
 | `:new-window-async!` | `(fn [name] → future)` | Async variant of `:new-window!` |
 | `:send-async!` | `(fn [name text] → future)` | Async variant of `:send!` |
 
+### Contract table (completion/error semantics)
+
+| Key | Return | Completion point | Error channel | Timeout/cancel |
+|---|---|---|---|---|
+| `:new-window!` | tmux/cmux command output (usually string) | backend command exits | throws `ex-info` | no builtin timeout/cancel |
+| `:send!` | backend command output | backend command exits | throws `ex-info` | no builtin timeout/cancel |
+| `:spawn-pane!` (tmux) | `{:session :window :pane-id :target :launch-command}` | split command exits and metadata parsed | throws `ex-info` with `:cause` | no builtin timeout/cancel |
+| `:capture!` | string | capture command exits | throws `ex-info` | n/a |
+| `:list!` | vector of names (possibly empty) | list command exits | returns `[]` on list failure in tmux backend | n/a |
+| `:new-window-async!` | `future` yielding same value as `:new-window!` | future realized | exception rethrown on deref | caller controls deref timeout |
+| `:send-async!` | `future` yielding same value as `:send!` | future realized | exception rethrown on deref | caller controls deref timeout |
+| `:spawn-pane-async!` (tmux) | `future` yielding same value as `:spawn-pane!` | future realized | exception rethrown on deref | caller controls deref timeout |
+
 Extended keys (backend-specific):
 
 | Key | Signature | Description |
@@ -90,6 +103,36 @@ Extended keys (backend-specific):
 - `:cwd` => working directory for spawned pane (optional)
 
 Returns: `{:session :window :pane-id :target :launch-command}`
+
+### Backend parity matrix
+
+| Key | tmux | cmux | Notes |
+|---|---|---|---|
+| `:new-window!` | ✅ | ✅ | core command |
+| `:send!` | ✅ | ✅ | core command |
+| `:capture!` | ✅ | ✅ | core query |
+| `:list!` | ✅ | ✅ | core query |
+| `:new-window-async!` | ✅ | ✅ | async wrapper over sync command |
+| `:send-async!` | ✅ | ✅ | async wrapper over sync command |
+| `:spawn-pane!` | ✅ | ➖ | tmux-only split-pane capability |
+| `:spawn-pane-async!` | ✅ | ➖ | tmux-only async split-pane |
+| `:wait-for!` | ➖ | ✅ | cmux signaling API |
+| `:signal-cmd` | ➖ | ✅ | cmux signaling API |
+| `:notify!` | ➖ | ✅ | cmux UX API |
+| `:set-description!` | ➖ | ✅ | cmux UX API |
+| `:set-color!` | ➖ | ✅ | cmux UX API |
+
+### Compatibility + migration checklist
+
+- ✅ Current release is non-breaking: sync keys unchanged.
+- ✅ Async path is additive via `*-async!` keys.
+- ✅ Query ops (`:capture!`, `:list!`) remain synchronous.
+- Call sites can migrate incrementally:
+  1. Keep current sync usage.
+  2. Switch command ops to `*-async!` where non-blocking is needed.
+  3. Deref with bounded timeout at orchestration boundary.
+  4. Preserve existing exception handling (same `ex-info` parity on deref).
+- Future deprecation path (if desired): announce first, then phase sync wrappers in a major release only.
 
 ## Testing
 

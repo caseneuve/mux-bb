@@ -2,28 +2,32 @@
   "Mux backend detection and dispatch.
 
    Protocol contract (backend map keys):
-     Core (sync/query-compatible):
-       :new-window!        (fn [window-name] → id)        Create/find a window (sync)
-       :send!              (fn [window-name text] → any)  Send text + Enter (sync)
-       :capture!           (fn [window-name] → string)    Read terminal scrollback (sync query)
-       :list!              (fn [] → [name ...])           List known windows (sync query; never nil)
+     Core command ops (sync):
+       :new-window!        (fn [window-name] → id)
+       :send!              (fn [window-name text] → any)
+     Core query ops (sync):
+       :capture!           (fn [window-name] → string)
+       :list!              (fn [] → [name ...])
 
      Async command extensions (optional):
        :new-window-async!  (fn [window-name] → future)
        :send-async!        (fn [window-name text] → future)
+       :spawn-pane-async!  (fn [opts] → future) ; tmux
 
      Extended (optional, backend-specific):
-       :spawn-pane!        (fn [opts] → pane-meta)        Spawn a split pane (tmux)
-       :spawn-pane-async!  (fn [opts] → future)           Async pane spawn (tmux)
-       :wait-for!          (fn [signal timeout] → any)    Block until signal (cmux)
-       :signal-cmd         (fn [signal] → string)         Shell cmd to fire signal (cmux)
-       :notify!            (fn [window title body])       Sidebar notification (cmux)
-       :set-description!   (fn [window text])             Workspace description (cmux)
-       :set-color!         (fn [window color])            Workspace tab color (cmux)
+       :spawn-pane!        (fn [opts] → pane-meta)        ; tmux
+       :wait-for!          (fn [signal timeout] → any)    ; cmux
+       :signal-cmd         (fn [signal] → string)         ; cmux
+       :notify!            (fn [window title body])       ; cmux
+       :set-description!   (fn [window text])             ; cmux
+       :set-color!         (fn [window color])            ; cmux
 
-     Completion semantics:
-       - sync keys complete when command exits.
-       - async keys return a future that yields the same value/exception as sync counterpart.
+     Per-key semantics:
+       - sync command/query keys complete when backend command exits.
+       - async keys return a future; completion point is future realization.
+       - async deref returns same value as sync counterpart or rethrows same exception.
+       - no backend-level timeout/cancel in mux protocol; caller owns bounded deref/poll/cancel policy.
+       - :list! returns [] on tmux list failure (never nil).
      Callers check optional fns with when-let before use.")
 
 ;; -- Pure detection --
