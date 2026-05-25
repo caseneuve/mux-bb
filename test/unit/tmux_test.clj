@@ -156,4 +156,29 @@
                                                 {:exit 1 :err "can't find pane: sess:main.0"})))]
         (let [e (try ((:spawn-pane! backend) {:command "echo hi"})
                      (catch Exception ex ex))]
-          (is (= :invalid-target (:cause (ex-data e)))))))))
+          (is (= :invalid-target (:cause (ex-data e))))))))
+
+  (testing "sync/async error parity: async wrappers rethrow same ex-data causes"
+    (let [backend (sut/make-backend {:sock "/tmp/test.sock" :session "sess"})
+          ex-data* (fn [thunk]
+                     (try
+                       (thunk)
+                       nil
+                       (catch clojure.lang.ExceptionInfo e
+                         (ex-data e))
+                       (catch java.util.concurrent.ExecutionException e
+                         (some-> e .getCause ex-data))))]
+      (with-redefs [sut/tmux? (fn [& _] "sess:main.0")
+                    sut/tmux! (fn [& args]
+                                (let [op (nth args 1 nil)]
+                                  (if (= "split-window" op)
+                                    (throw (ex-info "split fail" {:exit 1 :err "can't find pane"}))
+                                    (throw (ex-info "cmd fail" {:exit 1 :err "boom"})))))]
+        (is (= {:exit 1 :err "boom"}
+               (ex-data* #((:new-window! backend) "w"))))
+        (is (= {:exit 1 :err "boom"}
+               (ex-data* #(deref ((:new-window-async! backend) "w") 1000 :timeout))))
+        (is (= :invalid-target
+               (:cause (ex-data* #((:spawn-pane! backend) {:command "echo hi"})))))
+        (is (= :invalid-target
+               (:cause (ex-data* #(deref ((:spawn-pane-async! backend) {:command "echo hi"}) 1000 :timeout)))))))))

@@ -83,4 +83,23 @@
                                      (str \"Expected PANE_OK in pane output, got: \" out))
                              (println \"spawn captured OK\"))))"]}
     :then [[:exit-code 0]
-           [:stdout-contains "spawn captured OK"]]}]}]
+           [:stdout-contains "spawn captured OK"]]}
+
+   {:scenario :async-send-deterministic-marker
+    :desc "Async send completes with deterministic marker and bounded polling"
+    :when {:run ["bb" "-cp" "src"
+                 "-e" "(require '[mux.tmux :as t]
+                                '[clojure.string :as str])
+                       (let [be (t/make-backend {:sock \"{sock}\" :session \"{session}\"})
+                             marker \"ASYNC_DONE_0004\"]
+                         ((:new-window! be) \"async-win\")
+                         (let [f ((:send-async! be) \"async-win\" (str \"echo \" marker))]
+                           (assert (not= :timeout (deref f 2000 :timeout)) \"send-async! timed out\"))
+                         (loop [i 0]
+                           (let [out ((:capture! be) \"async-win\")]
+                             (cond
+                               (str/includes? out marker) (println \"async marker observed\")
+                               (< i 10) (do (Thread/sleep 100) (recur (inc i)))
+                               :else (throw (ex-info \"marker not observed within bounded polls\" {:marker marker}))))))"]}
+    :then [[:exit-code 0]
+           [:stdout-contains "async marker observed"]]}]}]
