@@ -1,6 +1,6 @@
 ---
 title: make mux backend commands non-blocking by contract
-status: in_progress
+status: done
 priority: high
 type: feature
 labels: []
